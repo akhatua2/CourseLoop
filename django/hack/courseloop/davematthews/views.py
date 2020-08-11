@@ -4,8 +4,7 @@ from django.http import HttpResponse, Http404, JsonResponse
 import json
 from davematthews.models import Student, FrqAssignment, WsAssignment, Submission, FrqSubmission
 
-from .serializers import SubmissionSerializer, FrqSubmissionSerializer
-from davematthews.models import Submission
+from .serializers import SubmissionSerializer, FrqSubmissionSerializer, WsAssignmentSerializer, FrqAssignmentSerializer
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
@@ -45,6 +44,7 @@ def submission_text(image_field):
     return pytesseract.image_to_string(Image.open(image_field))
 
 
+# create ws submission + grades + updates firebase DB
 @api_view(['POST'])
 def ws_grade(request, ws_id):
     if request.method == 'POST':
@@ -61,12 +61,18 @@ def ws_grade(request, ws_id):
             # grade = auto_grade_ws(latest_sub.content)
             latest_sub.save()
 
-            db.child("sandbox").child(str(latest_sub.uuid)).set({"content": latest_sub.content, "points": latest_sub.points})
+            data = {"assignment": str(latest_sub.ws.uuid),
+                    "content": latest_sub.content,
+                    "points": latest_sub.points,
+                    "type": "WS",}
+
+            db.child("sandbox").child(str(latest_sub.uuid)).set(data)
 
             return Response(subs_serializer.data, status=status.HTTP_201_CREATED)
     return HttpResponse("Something broke!")
 
 
+# create frq submission + grades + updates firebase DB
 @api_view(['POST'])
 def frq_grade(request, frq_id):
     if request.method == 'POST':
@@ -85,7 +91,10 @@ def frq_grade(request, frq_id):
             print(latest_sub.frq.uuid)
             print({"assignment": latest_sub.frq.uuid, "content": latest_sub.content, "points": latest_sub.points})
 
-            data = {"assignment": str(latest_sub.frq.uuid), "content": latest_sub.content, "points": latest_sub.points}
+            data = {"assignment": str(latest_sub.frq.uuid),
+                    "content": latest_sub.content,
+                    "points": latest_sub.points,
+                    "type": "FRQ",}
 
             db.child("sandbox").child(str(latest_sub.uuid)).set(data)
 
@@ -111,9 +120,27 @@ class SubmissionView(APIView):
             return Response(subs_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class WsAssignmentView(APIView):
+    # parser_classes = (MultiPartParser, FormParser)
+
+    def get(self, request, *args, **kwargs):
+        assignments = WsAssignment.objects.all()
+        serializer = WsAssignmentSerializer(assignments, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, *args, **kwargs):
+        asns_serializer = WsAssignmentSerializer(data=request.data)
+        if asns_serializer.is_valid():
+            asns_serializer.save()
+            return Response(asns_serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            print('error', asns_serializer.errors)
+            return Response(asns_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 class FrqSubmissionView(APIView):
-    parser_classes = (MultiPartParser, FormParser)
+    # parser_classes = (MultiPartParser, FormParser)
 
     def get(self, request, *args, **kwargs):
         posts = FrqSubmission.objects.all()
@@ -128,3 +155,22 @@ class FrqSubmissionView(APIView):
         else:
             print('error', subs_serializer.errors)
             return Response(subs_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class FrqAssignmentView(APIView):
+    # parser_classes = (MultiPartParser, FormParser)
+
+    def get(self, request, *args, **kwargs):
+        assignments = FrqAssignment.objects.all()
+        serializer = FrqAssignmentSerializer(assignments, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, *args, **kwargs):
+        asns_serializer = FrqAssignmentSerializer(data=request.data)
+        if asns_serializer.is_valid():
+            asns_serializer.save()
+            return Response(asns_serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            print('error', asns_serializer.errors)
+            return Response(asns_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+

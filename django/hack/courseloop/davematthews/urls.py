@@ -13,4 +13,7 @@ urlpatterns = [
 
     path('submissions/', views.SubmissionView.as_view(), name='subs_list'),
     path('frqsubmissions/', views.FrqSubmissionView.as_view(), name='frq_subs_list'),
+
+    path('worksheets/', views.WsAssignmentView.as_view(), name='ws_assignments_list'),
+    path('frqs/', views.FrqAssignmentView.as_view(), name='frq_assignments_list'),
 ]
