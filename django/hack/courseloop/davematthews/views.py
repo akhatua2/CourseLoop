@@ -83,7 +83,10 @@ def frq_grade(request, frq_id):
             frq_subs_serializer.save()
             frq_subs = FrqSubmission.objects.all()
             latest_sub = frq_subs[len(frq_subs) - 1]
+
+            print("breh")
             latest_sub.frq = FrqAssignment.objects.get(id=frq_id)
+            print("hello")
             latest_sub.uuid = uuid4()
             # grade = auto_grade_frq(latest_sub.content)
             latest_sub.save()
@@ -120,6 +123,7 @@ class SubmissionView(APIView):
             return Response(subs_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# Worksheet Assignments API
 class WsAssignmentView(APIView):
     # parser_classes = (MultiPartParser, FormParser)
 
@@ -132,6 +136,17 @@ class WsAssignmentView(APIView):
         asns_serializer = WsAssignmentSerializer(data=request.data)
         if asns_serializer.is_valid():
             asns_serializer.save()
+
+            ws_asns = WsAssignment.objects.all()
+            latest_asn = ws_asns[len(ws_asns) - 1]
+            latest_asn.uuid = uuid4()
+            latest_asn.save()
+
+            data = asns_serializer.data
+            data["uuid"] = str(latest_asn.uuid)
+
+            db.child("sandbox").child(str(latest_asn.uuid)).set(data)
+
             return Response(asns_serializer.data, status=status.HTTP_201_CREATED)
         else:
             print('error', asns_serializer.errors)
@@ -169,6 +184,17 @@ class FrqAssignmentView(APIView):
         asns_serializer = FrqAssignmentSerializer(data=request.data)
         if asns_serializer.is_valid():
             asns_serializer.save()
+
+            frq_asns = FrqAssignment.objects.all()
+            latest_asn = frq_asns[len(frq_asns) - 1]
+            latest_asn.uuid = uuid4()
+            latest_asn.save()
+
+            data = asns_serializer.data
+            data["uuid"] = str(latest_asn.uuid)
+
+            db.child("sandbox").child(str(latest_asn.uuid)).set(data)
+
             return Response(asns_serializer.data, status=status.HTTP_201_CREATED)
         else:
             print('error', asns_serializer.errors)
